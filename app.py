@@ -39,7 +39,7 @@ async def lifespan(app):
     yield
     pool.shutdown(wait=False,cancel_futures=True)
 
-app=FastAPI(title='建筑项目施组审查助手',lifespan=lifespan)
+app=FastAPI(title='建筑工程施组审查助手',lifespan=lifespan)
 
 @app.middleware('http')
 async def headers(request,call_next):
