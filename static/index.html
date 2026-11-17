@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>建筑项目施组审查助手</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/style.css?v=4"></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="#overview"><span class="brand-symbol">筑</span><span class="brand-title">建筑项目<br>施组审查助手<small>工程技术审核工作台</small></span></a>
+  <div class="nav-label">工作空间</div>
+  <nav><a href="#overview" data-nav="overview"><span>▦</span>项目总览</a><a href="#standards" data-nav="standards"><span>▤</span>受控规范库</a><a href="#rules" data-nav="rules"><span>☷</span>审核规则</a></nav>
+  <div class="sidebar-note"><span class="tiny-dot"></span>企业内部工作台<p>无需登录 · 全部项目共享</p></div>
+</aside>
+<div class="shell">
+  <header class="topbar"><div id="breadcrumb">工作空间 / 项目总览</div><div class="top-actions"><button class="pill" id="model-status" data-action="model-settings" title="打开大模型配置">正在读取模型状态</button><button class="btn small" data-action="model-settings">模型配置</button><button class="icon-button" id="refresh" title="刷新">↻</button></div></header>
+  <main id="app"><div class="loading">正在加载工作台…</div></main>
+  <footer>施工组织设计辅助审核 · 所有意见须由技术人员复核 · 岗位姓名为填写记录</footer>
+</div>
+<dialog id="dialog"><div id="dialog-content"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/app.js?v=5"></script>
+</body></html>
