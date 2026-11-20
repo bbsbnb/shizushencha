@@ -17,7 +17,7 @@ from parsing import ALLOWED, MAX_SIZE, parse_file, render_png, validate_file
 from rules import RULE_VERSION, rules_json
 from store import DATA, ROOT, all_rows, db, dumps, event, execute, init, now, one, uid
 
-pool=ThreadPoolExecutor(max_workers=2,thread_name_prefix='review')
+pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='review')
 active=set();active_lock=threading.RLock();upload_locks={}
 
 def submit(kind,id):
@@ -278,7 +278,7 @@ class TaskIn(BaseModel):
     file_ids:list[str]
     baseline_id:str=''
     actor:str=Field(min_length=1,max_length=60)
-    facts:str=Field(min_length=1,max_length=6000)
+    facts:str=Field(default='',max_length=6000)
 
 @app.post('/api/projects/{id}/tasks')
 def start_task(id:str,body:TaskIn):
@@ -291,7 +291,8 @@ def create_task(id,body):
         f=require('files',file_id)
         if f['project_id']!=id or f['status']!='ready':raise HTTPException(422,'请选择本项目已完成解析的资料')
     if require('files',body.main_file)['role']!='main':raise HTTPException(422,'主文件必须是施工组织设计或方案')
-    if not body.facts.strip() or not body.actor.strip():raise HTTPException(422,'请确认工程事实并填写发起人')
+    if not body.actor.strip():raise HTTPException(422,'请填写项目技术负责人')
+    facts=body.facts.strip() or '用户未补充其他工程事实；未提供的信息应标记待核实，仅依据项目建档信息和本轮上传资料审核。'
     if body.baseline_id:
         base=require('tasks',body.baseline_id)
         if base['project_id']!=id or base['state']!='confirmed':raise HTTPException(422,'复审基线必须是本项目已人工复核的任务')
@@ -302,7 +303,7 @@ def create_task(id,body):
               'standards':agent.applicable_standards(p['baseline_date'])}
     for file in snapshot['files']:file.pop('path',None)
     execute('''INSERT INTO tasks(id,project_id,main_file,file_ids,baseline_id,actor,facts,state,stage,snapshot,result,created,updated)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(task_id,id,body.main_file,dumps(ids),body.baseline_id,body.actor,body.facts,'queued','等待后台审核',dumps(snapshot),'{}',now(),now()))
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)''',(task_id,id,body.main_file,dumps(ids),body.baseline_id,body.actor,facts,'queued','等待后台审核',dumps(snapshot),'{}',now(),now()))
     event(id,body.actor,'发起整改复审' if body.baseline_id else '发起审核',{'task_id':task_id,'files':ids})
     submit('task',task_id)
     return {'id':task_id}

@@ -13,7 +13,7 @@ import pypdfium2 as pdfium
 
 from store import DATA, db, execute, one
 
-PDF_LOCK = threading.Lock()
+PDF_LOCK = threading.RLock()
 ALLOWED = {'.pdf', '.docx', '.doc', '.xlsx', '.xls'}
 MAX_SIZE = 300 * 1024 * 1024
 
@@ -118,29 +118,35 @@ try {
     return False
 
 def parse_pdf(file_id, path):
-    reader = PdfReader(str(path))
-    if reader.is_encrypted:
-        raise ValueError('加密PDF需先解密后上传')
-    total = len(reader.pages)
-    if total > 2000:
-        raise ValueError('单文件超过2000页，请分册上传')
-    execute('UPDATE files SET page_count=? WHERE id=?', (total,file_id))
-    for i,page in enumerate(reader.pages,1):
+    with PDF_LOCK:
+        reader = PdfReader(str(path))
         try:
-            text = page.extract_text() or ''
-            xobjects = page.get('/Resources',{}).get('/XObject',{})
-            scanned = any(x.get_object().get('/Subtype')=='/Image' for x in xobjects.values())
-            quality = 'needs_check' if scanned else 'readable'
-            note = '含扫描图像；文字层及技术参数需原页核验' if scanned else ''
-            if len(text.strip()) < 70:
-                recovered, ocr_note = ocr_page(path,i)
-                if len(recovered) > len(text):
-                    text = recovered
-                quality = 'needs_check' if len(text.strip()) >= 70 else 'unreadable'
-                note = ocr_note
-            save_page(file_id,i,f'PDF第{i}页',text,quality,note)
-        except Exception as exc:
-            save_page(file_id,i,f'PDF第{i}页','','unreadable','本页解析失败：'+str(exc)[:180])
+            if reader.is_encrypted:
+                raise ValueError('加密PDF需先解密后上传')
+            total = len(reader.pages)
+            if total > 2000:
+                raise ValueError('单文件超过2000页，请分册上传')
+            execute('UPDATE files SET page_count=? WHERE id=?', (total,file_id))
+            for i,page in enumerate(reader.pages,1):
+                try:
+                    text = page.extract_text() or ''
+                    xobjects = page.get('/Resources',{}).get('/XObject',{})
+                    scanned = any(x.get_object().get('/Subtype')=='/Image' for x in xobjects.values())
+                    quality = 'needs_check' if scanned else 'readable'
+                    note = '含扫描图像；文字层及技术参数需原页核验' if scanned else ''
+                    if len(text.strip()) < 70:
+                        recovered, ocr_note = ocr_page(path,i)
+                        if len(recovered) > len(text):
+                            text = recovered
+                        quality = 'needs_check' if len(text.strip()) >= 70 else 'unreadable'
+                        note = ocr_note
+                    save_page(file_id,i,f'PDF第{i}页',text,quality,note)
+                except Exception as exc:
+                    save_page(file_id,i,f'PDF第{i}页','','unreadable','本页解析失败：'+str(exc)[:180])
+                finally:
+                    reader.resolved_objects.clear()
+        finally:
+            reader.close()
 
 def parse_office(file_id,path,ext):
     preview = DATA / 'previews' / (file_id+'.pdf')

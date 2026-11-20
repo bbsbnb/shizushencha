@@ -123,7 +123,7 @@ function launch(){
  modal('发起审核或整改复审',`<form><div class="field"><label>主文件</label><select name="main_file">${main.map(f=>`<option value="${f.id}">${esc(f.version+' · '+f.name)}</option>`).join('')}</select></div>
  <div class="field"><label>本轮其他依据资料</label>${ready.filter(f=>f.role!=='main').map(f=>`<label><input type="checkbox" name="support" value="${f.id}"> ${esc(f.version+' · '+f.name)}</label>`).join('')||'<span class="muted">当前无图纸、清单等依据，将仅审核主文件。</span>'}</div>
  <div class="field"><label>整改复审基线</label><select name="baseline_id"><option value="">不关联基线，建立新审核</option>${p.tasks.filter(t=>t.state==='confirmed').map(t=>`<option value="${t.id}">${esc(t.id.slice(0,8)+' · '+fmt(t.created))}</option>`).join('')}</select></div>
- ${textfield('确认工程事实及本轮整改说明','facts',p.facts,4)}${field('项目技术负责人','actor',actor()||p.actor,'text',true,true)}
+   ${textfield('补充工程事实及本轮整改说明（选填）','facts',p.facts,4)}${field('项目技术负责人','actor',actor()||p.actor,'text',true,true)}
  <div class="notice warn">审核基准：${esc(p.baseline_date)}。逐页AI审核将调用 Agnes 服务，调用量取决于文件长度。尚未核验的规范不用于确定性合规判断。</div>
  <label style="font-size:12px"><input type="checkbox" required> 我已核对工程事实、资料版本和审核基准，同意开始本轮审核。</label>${modalFoot('开始审核')}</form>`,async(data,form)=>{
    const file_ids=[...form.querySelectorAll('[name=support]:checked')].map(x=>x.value);

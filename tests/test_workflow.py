@@ -62,6 +62,15 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(r.status_code,200,r.text)
         return r.json()['id']
 
+    def test_start_task_allows_no_additional_facts_without_claiming_confirmation(self):
+        fid=self.upload()
+        response=self.client.post(f'/api/projects/{self.project}/tasks',json=dict(
+            main_file=fid,file_ids=[fid],actor='测试技术负责人',facts=''))
+        self.assertEqual(response.status_code,200,response.text)
+        task=one('SELECT facts FROM tasks WHERE id=?',(response.json()['id'],))
+        self.assertIn('用户未补充其他工程事实',task['facts'])
+        self.assertIn('标记待核实',task['facts'])
+
     def test_delete_unused_file_cleans_storage_and_records_event(self):
         fid=self.upload()
         original=Path(one('SELECT path FROM files WHERE id=?',(fid,))['path'])
